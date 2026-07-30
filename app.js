@@ -145,23 +145,31 @@ function filterParts() {
 
 function detectUserCountry() {
     let country = "KR";
-    let locationName = "Daejeon, South Korea";
+    let locationName = "Global Region";
 
     try {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
         const lang = navigator.language || "";
+
+        // 📍 전 세계 모든 도시/타임존 동적 파싱 (예: "Asia/Seoul" -> "Seoul (Asia)", "America/New_York" -> "New York (America)")
+        if (tz && tz.includes("/")) {
+            const parts = tz.split("/");
+            const continent = parts[0];
+            const city = parts[1].replace(/_/g, " ");
+            locationName = `${city} (${continent})`;
+        } else if (tz) {
+            locationName = tz;
+        } else if (lang) {
+            locationName = `Region (${lang})`;
+        }
+
+        // 🌐 매장 데이터 필터링용 국가 코드 매핑
         if (tz.includes("Seoul") || tz.includes("Korea") || lang.startsWith("ko")) {
             country = "KR";
-            locationName = "Daejeon, South Korea";
-        } else if (tz.includes("Prague") || tz.includes("Czech") || lang.startsWith("cs")) {
-            country = "CZ";
-            locationName = "Praha, Czech Republic";
         } else if (tz.includes("America") || tz.includes("US") || lang.startsWith("en-US")) {
             country = "US";
-            locationName = "Salt Lake City, UT, USA";
-        } else {
-            country = "KR";
-            locationName = "Detected Region (" + (tz || lang || "Global") + ")";
+        } else if (tz.includes("Europe") || lang.startsWith("cs") || lang.startsWith("de")) {
+            country = "CZ";
         }
     } catch (e) {
         console.error("Timezone detection error: ", e);
@@ -174,6 +182,7 @@ function detectUserCountry() {
 
     return country;
 }
+
 
 
 function renderInteractiveMap(userCountry, nearbyDealers) {
