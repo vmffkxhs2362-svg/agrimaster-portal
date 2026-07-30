@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchParts() {
     try {
+        detectUserCountry(); // Render dynamic location badge on page load
         const response = await fetch('ag_parts_data.json');
         allParts = await response.json();
         renderParts(allParts);
@@ -16,6 +17,7 @@ async function fetchParts() {
         console.error('Error loading parts data:', error);
     }
 }
+
 
 // ⚙️ Dynamic Parametric Spec & Title Generator based on Active Filters
 function getDynamicPartData(part) {
@@ -142,23 +144,37 @@ function filterParts() {
 }
 
 function detectUserCountry() {
+    let country = "KR";
+    let locationName = "Daejeon, South Korea";
+
     try {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
         const lang = navigator.language || "";
         if (tz.includes("Seoul") || tz.includes("Korea") || lang.startsWith("ko")) {
-            return "KR";
-        }
-        if (tz.includes("Prague") || tz.includes("Czech") || lang.startsWith("cs")) {
-            return "CZ";
-        }
-        if (tz.includes("America") || tz.includes("US") || lang.startsWith("en-US")) {
-            return "US";
+            country = "KR";
+            locationName = "Daejeon, South Korea";
+        } else if (tz.includes("Prague") || tz.includes("Czech") || lang.startsWith("cs")) {
+            country = "CZ";
+            locationName = "Praha, Czech Republic";
+        } else if (tz.includes("America") || tz.includes("US") || lang.startsWith("en-US")) {
+            country = "US";
+            locationName = "Salt Lake City, UT, USA";
+        } else {
+            country = "KR";
+            locationName = "Detected Region (" + (tz || lang || "Global") + ")";
         }
     } catch (e) {
         console.error("Timezone detection error: ", e);
     }
-    return "KR"; // Default fallback
+
+    const badgeEl = document.getElementById('user-location-badge');
+    if (badgeEl) {
+        badgeEl.innerHTML = `📍 Detected Farm Location: <strong>${locationName}</strong>`;
+    }
+
+    return country;
 }
+
 
 function renderInteractiveMap(userCountry, nearbyDealers) {
     let centerLat = 36.3504, centerLng = 127.3845, regionName = "Daejeon, Korea";
