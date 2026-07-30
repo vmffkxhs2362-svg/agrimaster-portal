@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://agrimaster.inwoovation.com/sitemap.xml
