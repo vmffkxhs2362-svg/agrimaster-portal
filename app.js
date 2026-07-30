@@ -4,12 +4,17 @@ let leafletMap = null;
 let leafletMarkers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+    detectUserCountry();
     fetchParts();
+});
+
+window.addEventListener('load', () => {
+    detectUserCountry();
 });
 
 async function fetchParts() {
     try {
-        detectUserCountry(); // Render dynamic location badge on page load
+        detectUserCountry();
         const response = await fetch('ag_parts_data.json');
         allParts = await response.json();
         renderParts(allParts);
@@ -17,6 +22,7 @@ async function fetchParts() {
         console.error('Error loading parts data:', error);
     }
 }
+
 
 
 // ⚙️ Dynamic Parametric Spec & Title Generator based on Active Filters
@@ -145,13 +151,12 @@ function filterParts() {
 
 function detectUserCountry() {
     let country = "KR";
-    let locationName = "Global Region";
+    let locationName = "Seoul (Asia)";
 
     try {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
         const lang = navigator.language || "";
 
-        // 📍 전 세계 모든 도시/타임존 동적 파싱 (예: "Asia/Seoul" -> "Seoul (Asia)", "America/New_York" -> "New York (America)")
         if (tz && tz.includes("/")) {
             const parts = tz.split("/");
             const continent = parts[0];
@@ -163,25 +168,49 @@ function detectUserCountry() {
             locationName = `Region (${lang})`;
         }
 
-        // 🌐 매장 데이터 필터링용 국가 코드 매핑
         if (tz.includes("Seoul") || tz.includes("Korea") || lang.startsWith("ko")) {
             country = "KR";
+            if (!tz) locationName = "Seoul (Asia)";
         } else if (tz.includes("America") || tz.includes("US") || lang.startsWith("en-US")) {
             country = "US";
+            if (!tz) locationName = "Utah (America)";
         } else if (tz.includes("Europe") || lang.startsWith("cs") || lang.startsWith("de")) {
             country = "CZ";
+            if (!tz) locationName = "Prague (Europe)";
         }
     } catch (e) {
         console.error("Timezone detection error: ", e);
     }
 
-    const badgeEl = document.getElementById('user-location-badge');
-    if (badgeEl) {
-        badgeEl.innerHTML = `📍 Detected Farm Location: <strong>${locationName}</strong>`;
+    // 📍 1. 즉시 타임존 감지 결과 뱃지 업데이트
+    const updateBadge = (name) => {
+        const badgeEl = document.getElementById('user-location-badge');
+        if (badgeEl) {
+            badgeEl.innerHTML = `📍 Detected Farm Location: <strong>${name}</strong>`;
+        }
+    };
+
+    updateBadge(locationName);
+
+    // 📍 2. 브라우저 GPS 허용 시 더 정밀한 GPS 좌표로 실시간 업그레이드
+    if (navigator.geolocation && !window.geoRequested) {
+        window.geoRequested = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude.toFixed(2);
+                const lng = pos.coords.longitude.toFixed(2);
+                updateBadge(`GPS (${lat}°, ${lng}°) - ${locationName}`);
+            },
+            (err) => {
+                // GPS 미허용 시 타임존 지역명 유지
+            },
+            { timeout: 3000 }
+        );
     }
 
     return country;
 }
+
 
 
 
